@@ -260,7 +260,10 @@ public class ConfigSync
 			isServer = __instance.IsServer();
 			foreach (ConfigSync configSync in configSyncs)
 			{
-				ZRoutedRpc.instance.Register<ZPackage>(configSync.Name + " ConfigSync", configSync.RPC_FromOtherClientConfigSync);
+				if (!ZRoutedRpc.instance.m_functions.ContainsKey((configSync.Name + " ConfigSync").GetStableHashCode()))
+				{
+					ZRoutedRpc.instance.Register<ZPackage>(configSync.Name + " ConfigSync", configSync.RPC_FromOtherClientConfigSync);
+				}
 				if (isServer)
 				{
 					configSync.InitialSyncDone = true;

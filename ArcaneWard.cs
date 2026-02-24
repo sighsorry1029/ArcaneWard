@@ -5,7 +5,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using AsyncModLoader;
 using BepInEx;
 using BepInEx.Configuration;
 using fastJSON;
@@ -17,13 +16,12 @@ using UnityEngine.Rendering;
 
 namespace kg_ArcaneWard
 {
-    [BepInPlugin(GUID, NAME, VERSION)] 
-    [BepInDependency("kg.AsyncModLoader", BepInDependency.DependencyFlags.HardDependency)]
+    [BepInPlugin(GUID, NAME, VERSION)]
     public class ArcaneWard : BaseUnityPlugin
     {
         private const string GUID = "kg.ArcaneWard";
         private const string NAME = "Arcane Ward";
-        private const string VERSION = "0.6.8";
+        private const string VERSION = "0.6.9";
 
         private static readonly ConfigSync configSync = new ConfigSync(GUID)
             { DisplayName = NAME, CurrentVersion = VERSION, MinimumRequiredVersion = VERSION, IsLocked = true, ModRequired = true };
@@ -76,7 +74,6 @@ namespace kg_ArcaneWard
 
         private IEnumerator AsyncAwake()
         {
-            this.AsyncModLoaderInit();
             JSON.Parameters = new JSONParameters { UseExtensions = false };
             Localizer.Load();
             _thistype = this; 
@@ -86,7 +83,7 @@ namespace kg_ArcaneWard
             ArcaneWard_Piece.AddComponent<ArcaneWardComponent>();
             ArcaneWard_Icon = ArcaneWard_Piece.GetComponent<Piece>().m_icon;
 
-            WardRecipe = config("General", "WardRecipe", "Iron:10:true,Wood:5:true", "The recipe for the Arcane Ward");
+            WardRecipe = config("General", "WardRecipe", "GreydwarfEye:1:true,Wood:10:true", "The recipe for the Arcane Ward");
             WardRecipe.SettingChanged += (_, _) => ZNetScene_Awake_Patch.ResetRecipe();
             WardDefaultRadius = config("General", "WardDefaultRadius", 30, "The default radius of the Arcane Ward");
             WardMinRadius = config("General", "WardMinRadius", 10, "The minimum radius of the Arcane Ward");
@@ -99,19 +96,19 @@ namespace kg_ArcaneWard
             EnableWardTeleport = config("General", "EnableWardTeleport", true, "Whether the Arcane Ward should allow teleporting to it");
             AllowTeleportWithOre = config("General", "AllowTeleportWithOre", false, "Whether the Arcane Ward should allow teleporting when non-teleportable items are in inventory");
 
-            CastShadows = Config.Bind("Visuals", "CastShadows", true, "Whether the Arcane Ward Bubble should cast shadows");
-            WardSound = Config.Bind("Visuals", "WardSound", true, "Whether the Arcane Ward should play a sound when activated");
-            WardFlash = Config.Bind("Visuals", "WardFlash", true, "Whether the Arcane Ward should flash triggered");
-            ShowAreaMarker = Config.Bind("Visuals", "AreaMarker", true, "Whether the Arcane Ward should display an area marker");
-            UseShiftLeftClick = Config.Bind("General", "UseShiftLeftClick", false, "Whether the Arcane Ward should use Shift + Left Click to open UI from map or just Left Click");
-            RadiusOnMap = Config.Bind("General", "RadiusOnMap", true, "Whether the Arcane Ward should show its radius on the map");
-            ShowIconsOnMap = config("General", "ShowIconsOnMap", true, "Whether the Arcane Ward should show its icon on the map");
-   
-            ApplyOptions(CastShadows.Value, WardSound.Value);
+            CastShadows = config("Visuals", "CastShadows", true, "Whether the Arcane Ward Bubble should cast shadows", false);
+            WardSound = config("Visuals", "WardSound", true, "Whether the Arcane Ward should play a sound when activated", false);
+            WardFlash = config("Visuals", "WardFlash", true, "Whether the Arcane Ward should flash triggered", false);
+            ShowAreaMarker = config("Visuals", "AreaMarker", true, "Whether the Arcane Ward should display an area marker", false);
+            UseShiftLeftClick = config("General", "UseShiftLeftClick", false, "Whether the Arcane Ward should use Shift + Left Click to open UI from map or just Left Click", false);
+            RadiusOnMap = config("General", "RadiusOnMap", true, "Whether the Arcane Ward should show its radius on the map", false);
+            ShowIconsOnMap = config("General", "ShowIconsOnMap", true, "Whether the Arcane Ward should show its icon on the map", false);
+
+            CastShadows.SettingChanged += (_, _) => ApplyOptions(CastShadows.Value, WardSound.Value);
+            WardSound.SettingChanged += (_, _) => ApplyOptions(CastShadows.Value, WardSound.Value);
             if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null) yield return ArcaneWardUI.Init();
             ServerSide.ServerSideInit(); 
             new Harmony(GUID).PatchAll();
-            this.AsyncModLoaderDone();
         }
         
         public static void ApplyOptions(bool castShadows, bool wardSound)

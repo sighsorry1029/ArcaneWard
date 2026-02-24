@@ -12,7 +12,7 @@ public static class Extensions
 {
     public static string ToTime(this int seconds)
     {
-        if (seconds == 0) return "0$kg_arcaneward_seconds".Localize();
+        if (seconds == 0) return $"0$kg_arcaneward_seconds".Localize();
         TimeSpan t = TimeSpan.FromSeconds(seconds);
         string result = "";
         if (t.Days > 0) result += $"{t.Days:D2}$kg_arcaneward_days ";
@@ -24,7 +24,7 @@ public static class Extensions
 
     public static string ToTimeNoS(this int seconds)
     {
-        if (seconds == 0) return "0$kg_arcaneward_seconds".Localize();
+        if (seconds == 0) return $"0$kg_arcaneward_seconds".Localize();
         TimeSpan t = TimeSpan.FromSeconds(seconds);
         string result = "";
         if (t.Days > 0) result += $"{t.Days:D2}$kg_arcaneward_days ";

@@ -46,8 +46,10 @@ public static class ClientSide
     {
         private static void Postfix(ZNetScene __instance)
         {
-            ZRoutedRpc.instance.Register("ArcaneWard Data", new Action<long, bool>(ReceiveData_ArcaneWard));
-            ZRoutedRpc.instance.Register("ArcaneWard Notify", new Action<long, string>(ReceiveData_Notify)); 
+            if (!ZRoutedRpc.instance.m_functions.ContainsKey("ArcaneWard Data".GetStableHashCode()))
+                ZRoutedRpc.instance.Register("ArcaneWard Data", new Action<long, bool>(ReceiveData_ArcaneWard));
+            if (!ZRoutedRpc.instance.m_functions.ContainsKey("ArcaneWard Notify".GetStableHashCode()))
+                ZRoutedRpc.instance.Register("ArcaneWard Notify", new Action<long, string>(ReceiveData_Notify)); 
             List<GameObject> hammer = __instance.GetPrefab("Hammer").GetComponent<ItemDrop>().m_itemData.m_shared.m_buildPieces.m_pieces;
             if (!hammer.Contains(ArcaneWard.ArcaneWard_Piece)) hammer.Add(ArcaneWard.ArcaneWard_Piece);
             __instance.m_namedPrefabs.Add(ArcaneWard.ArcaneWard_Piece.name.GetStableHashCode(), ArcaneWard.ArcaneWard_Piece);
@@ -55,7 +57,7 @@ public static class ClientSide
 
         private static void ReceiveData_Notify(long sender, string wardName)
         {
-            MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, $"Something triggered <color=green>{wardName}</color>");
+            MessageHud.instance.ShowMessage(MessageHud.MessageType.Center, "$kg_arcaneward_triggered".Localize() + $" <color=green>{wardName}</color>");
         }
   
         private static void ReceiveData_ArcaneWard(long sender, bool can) => ArcaneWardComponent._canPlaceWard = can;

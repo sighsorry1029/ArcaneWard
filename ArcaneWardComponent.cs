@@ -246,7 +246,7 @@ public class ArcaneWardComponent : MonoBehaviour, Interactable, Hoverable
         if (!IsPermitted(Game.instance.m_playerProfile.m_playerID) && !Player.m_debugMode) return "$kg_cantviewarcaneward".Localize();  
         if (Player.m_localPlayer.GetHoverObject() == _portal.gameObject) return "[<color=yellow><b>$KEY_Use</b></color>] $kg_arcaneward_portal".Localize();
         StringBuilder stringBuilder = new StringBuilder(256);
-        stringBuilder.Append($"Charge: <color=green>{((int)Fuel).ToTime()}</color> | <color=yellow>{ArcaneWard.WardMaxFuel.Value.ToTimeNoS()}</color>\n");
+        stringBuilder.Append($"$kg_arcaneward_charge: <color=green>{((int)Fuel).ToTime()}</color> | <color=yellow>{ArcaneWard.WardMaxFuel.Value.ToTimeNoS()}</color>\n");
         var currenStatus = IsActivated ? "<color=green>$kg_arcaneward_activated</color>" : "<color=#FF0000>$kg_arcaneward_deactivated</color>";
         if (Fuel <= 0) currenStatus += " <color=red>($kg_arcaneward_nofuel)</color>";
         stringBuilder.Append(_piece.m_name + $" ( {currenStatus} )");
@@ -513,6 +513,32 @@ public static class WardProtectionPatches
     private static class Pickable_Interact_Patch
     {
         private static bool Prefix(Pickable __instance) => !ArcaneWardComponent.CheckFlag(__instance.transform.position, true, Protection.Pickables);
+    }
+    [HarmonyPatch(typeof(CraftingStation),nameof(CraftingStation.Interact))]
+    private static class CraftingStation_Interact_Patch
+    {
+        private static void Prefix(CraftingStation __instance, ref float __state)
+        {
+            __state = __instance.m_useDistance;
+            if (ArcaneWardComponent.CheckFlag(__instance.transform.position, true, Protection.Crafting_Stations))
+            {
+                __instance.m_useDistance = 0f;
+            }
+        }
+        private static void Postfix(CraftingStation __instance, float __state) => __instance.m_useDistance = __state;
+    }
+    [HarmonyPatch(typeof(CraftingStation),nameof(CraftingStation.UseItem))]
+    private static class CraftingStation_UseItem_Patch
+    {
+        private static void Prefix(CraftingStation __instance, ref float __state)
+        {
+            __state = __instance.m_useDistance;
+            if (ArcaneWardComponent.CheckFlag(__instance.transform.position, true, Protection.Crafting_Stations))
+            {
+                __instance.m_useDistance = 0f;
+            }
+        }
+        private static void Postfix(CraftingStation __instance, float __state) => __instance.m_useDistance = __state;
     }
     [HarmonyPatch(typeof(ItemDrop),nameof(ItemDrop.Interact))]
     private static class ItemDrop_Interact_Patch

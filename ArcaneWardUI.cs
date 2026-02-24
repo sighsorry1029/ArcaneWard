@@ -114,10 +114,6 @@ public static class ArcaneWardUI
         //permissions
         PermittedEntry = Tabs[2].Find("Permitted/Viewport/Content/PermittedEntry").gameObject;
         AddPermittedEntry = Tabs[2].Find("AddPermitted/Viewport/Content/AddPermittedEntry").gameObject;
-
-        EnabledLocalized = "$kg_arcaneward_enabled".Localize();
-        DisabledLocalized = "$kg_arcaneward_disabled".Localize();
-        Localization.instance.Localize(UI.transform);
     }
 
     private static void Save()
@@ -199,6 +195,7 @@ public static class ArcaneWardUI
             entry.transform.Find("text").GetComponent<TMP_Text>().text = Localization.instance.Localize($"{item.m_shared.m_name} ({addSeconds.ToTime()}) [{inventoryAmount}]");
             entry.transform.Find("text").GetComponent<TMP_Text>().color = inventoryAmount >= 1 ? new Color(0.57f, 1f, 0.51f) : new Color(1f, 0.25f, 0.39f);
             Button addOne = entry.transform.Find("Add1").GetComponent<Button>();
+            addOne.transform.Find("text").GetComponent<TMP_Text>().text = "$kg_arcaneward_add_1".Localize();
             addOne.transform.Find("text").GetComponent<TMP_Text>().color = inventoryAmount >= 1 ? new Color(0.57f, 1f, 0.51f) : new Color(1f, 0.25f, 0.39f);
             addOne.interactable = inventoryAmount >= 1;
             addOne.onClick.AddListener(() =>
@@ -211,6 +208,7 @@ public static class ArcaneWardUI
                 UpdateFuel();
             });
             Button addFive = entry.transform.Find("Add5").GetComponent<Button>();
+            addFive.transform.Find("text").GetComponent<TMP_Text>().text = "$kg_arcaneward_add_5".Localize();
             addFive.transform.Find("text").GetComponent<TMP_Text>().color = inventoryAmount >= 5 ? new Color(0.57f, 1f, 0.51f) : new Color(1f, 0.25f, 0.39f);
             addFive.interactable = inventoryAmount >= 5;
             addFive.onClick.AddListener(() =>
@@ -223,6 +221,7 @@ public static class ArcaneWardUI
                 UpdateFuel();
             });
             Button addTen = entry.transform.Find("Add10").GetComponent<Button>();
+            addTen.transform.Find("text").GetComponent<TMP_Text>().text = "$kg_arcaneward_add_10".Localize();
             addTen.transform.Find("text").GetComponent<TMP_Text>().color = inventoryAmount >= 10 ? new Color(0.57f, 1f, 0.51f) : new Color(1f, 0.25f, 0.39f);
             addTen.interactable = inventoryAmount >= 10;
             addTen.onClick.AddListener(() =>
@@ -318,7 +317,26 @@ public static class ArcaneWardUI
     {
         _currentWard = ward;
         if (!_currentWard.IsValid() || !Player.m_localPlayer) return;
-        Name.text = ward.GetString(ArcaneWardComponent._cache_Key_Name, "Arcane Ward");
+
+        EnabledLocalized = "$kg_arcaneward_enabled".Localize();
+        DisabledLocalized = "$kg_arcaneward_disabled".Localize();
+        Localization.instance.Localize(UI.transform);
+        
+        TMP_FontAsset font = null;
+        if (Localization.instance.GetSelectedLanguage() != "English")
+        {
+            if (StoreGui.instance) font = StoreGui.instance.m_coinText.font;
+            else if (InventoryGui.instance) font = InventoryGui.instance.m_craftingStationName.font;
+            else if (Chat.instance) font = Chat.instance.m_output.font;
+        }
+
+        if (font != null)
+        {
+            foreach (TMP_Text text in UI.GetComponentsInChildren<TMP_Text>(true))
+                text.font = font;
+        }
+
+        Name.text = ward.GetString(ArcaneWardComponent._cache_Key_Name, "$kg_arcaneward".Localize());
         bool isActivated = ward.GetBool(ArcaneWardComponent._cache_Key_Enabled);
         Enabled.transform.Find("text").GetComponent<TMP_Text>().text = isActivated ? EnabledLocalized : DisabledLocalized;
         Enabled.transform.Find("text").GetComponent<TMP_Text>().color = isActivated ? Color.green : Color.red;
