@@ -11,6 +11,7 @@ namespace kg_ArcaneWard;
 
 public static class ArcaneWardUI
 {
+    private static readonly HashSet<string> ReportedFuelConfigIssues = new();
     private static GameObject UI;
     private static ZDO _currentWard;
     
@@ -177,6 +178,7 @@ public static class ArcaneWardUI
     private static void UpdateFuel()
     {
         if (_currentWard == null || !_currentWard.IsValid() || !Player.m_localPlayer) return;
+        if (!ZNetScene.instance) return;
         FuelEntry.transform.parent.RemoveAllChildrenExceptFirst();
     
         Vector3 wardPos = _currentWard.GetPosition();
@@ -184,13 +186,38 @@ public static class ArcaneWardUI
         if (distance > ArcaneWard.WardMaxDistanceToFuel.Value) return;
         
         string[] split = ArcaneWard.WardFuelPrefabs.Value.Split(',');
-        for(int i = 0; i < split.Length; i += 2)
+        if (split.Length % 2 != 0)
         {
+            ReportFuelConfigIssue($"[ArcaneWard] Invalid WardFuelPrefabs pair count ({split.Length}). The last value will be ignored.");
+        }
+
+        for(int i = 0; i + 1 < split.Length; i += 2)
+        {
+            string prefabName = split[i].Trim();
+            string secondsRaw = split[i + 1].Trim();
+            if (string.IsNullOrWhiteSpace(prefabName))
+            {
+                ReportFuelConfigIssue($"[ArcaneWard] Invalid WardFuelPrefabs at index {i}: prefab name is empty.");
+                continue;
+            }
+
+            if (!int.TryParse(secondsRaw, out int addSeconds) || addSeconds <= 0)
+            {
+                ReportFuelConfigIssue($"[ArcaneWard] Invalid WardFuelPrefabs seconds '{secondsRaw}' for prefab '{prefabName}'.");
+                continue;
+            }
+
+            GameObject fuelPrefab = ZNetScene.instance.GetPrefab(prefabName);
+            if (!fuelPrefab || fuelPrefab.GetComponent<ItemDrop>() is not { } fuelItemDrop)
+            {
+                ReportFuelConfigIssue($"[ArcaneWard] Invalid WardFuelPrefabs prefab '{prefabName}'. Prefab not found or has no ItemDrop.");
+                continue;
+            }
+
             GameObject entry = Object.Instantiate(FuelEntry, FuelEntry.transform.parent);
             entry.SetActive(true); 
-            var item = ZNetScene.instance.GetPrefab(split[i]).GetComponent<ItemDrop>().m_itemData;
+            var item = fuelItemDrop.m_itemData;
             entry.transform.Find("Icon").GetComponent<Image>().sprite = item.GetIcon();
-            int addSeconds = int.Parse(split[i + 1]); 
             int inventoryAmount = Player.m_localPlayer.GetInventory().CountItems(item.m_shared.m_name);
             entry.transform.Find("text").GetComponent<TMP_Text>().text = Localization.instance.Localize($"{item.m_shared.m_name} ({addSeconds.ToTime()}) [{inventoryAmount}]");
             entry.transform.Find("text").GetComponent<TMP_Text>().color = inventoryAmount >= 1 ? new Color(0.57f, 1f, 0.51f) : new Color(1f, 0.25f, 0.39f);
@@ -234,6 +261,16 @@ public static class ArcaneWardUI
                 UpdateFuel();
             });  
         }
+    }
+
+    private static void ReportFuelConfigIssue(string message)
+    {
+        if (!ReportedFuelConfigIssues.Add(message))
+        {
+            return;
+        }
+
+        Debug.LogWarning(message);
     }
     private static void UpdateProtection()
     {
@@ -375,7 +412,13 @@ public static class ArcaneWardUI
     {
         while (true)
         {
-            if (_currentWard == null || !_currentWard.IsValid()) continue;
+            if (!IsVisible) yield break;
+            if (_currentWard == null || !_currentWard.IsValid())
+            {
+                yield return new WaitForSeconds(0.25f);
+                continue;
+            }
+
             if (_currentWard.HasOwner()) 
             {
                 float fuel = _currentWard.GetFloat(ArcaneWardComponent._cache_Key_Fuel);
@@ -406,7 +449,6 @@ public static class ArcaneWardUI
                 }
             }
             yield return new WaitForSeconds(1f);
-            if (!IsVisible) yield break;
         }
     }
     public static bool IsVisible => UI && UI.activeSelf;

@@ -170,7 +170,8 @@ public class ArcaneWardComponent : MonoBehaviour, Interactable, Hoverable
         if (_znet.IsOwner() && CreatorName == "")
         {
             string creatorName = Game.instance.GetPlayerProfile().GetName();
-            Setup(creatorName, PlatformManager.DistributionPlatform.LocalUser.PlatformUserID.m_userID);
+            string creatorId = PlatformManager.DistributionPlatform?.LocalUser?.PlatformUserID.m_userID ?? Game.instance.m_playerProfile.m_playerID.ToString();
+            Setup(creatorName, creatorId);
         }
         InvokeRepeating(nameof(UpdateStatus), 1f, 1);
     }
@@ -207,7 +208,7 @@ public class ArcaneWardComponent : MonoBehaviour, Interactable, Hoverable
     private void AddFuel(long sender, int fuel)
     {
         if (!_znet.IsOwner()) return;
-        Instantiate(ArcaneWard.FlashShield_Fuel, transform.position, Quaternion.identity);
+        SpawnWardEffect(ArcaneWard.FlashShield_Fuel);
         Fuel += fuel;
         if (Fuel > ArcaneWard.WardMaxFuel.Value) Fuel = ArcaneWard.WardMaxFuel.Value;
     }
@@ -217,7 +218,7 @@ public class ArcaneWardComponent : MonoBehaviour, Interactable, Hoverable
         bool currentState = IsActivated;
         if (currentState == !prevState) return;
         IsActivated = !prevState;
-        Instantiate(prevState ? ArcaneWard.FlashShield_Deactivate : ArcaneWard.FlashShield_Activate, transform.position, Quaternion.identity);
+        SpawnWardEffect(prevState ? ArcaneWard.FlashShield_Deactivate : ArcaneWard.FlashShield_Activate);
         LastUpdateTime = (int)EnvMan.instance.m_totalSeconds;
     }
     private void ResetCache(long obj, string permittedJSON)
@@ -280,9 +281,34 @@ public class ArcaneWardComponent : MonoBehaviour, Interactable, Hoverable
         
         LastFlashTime = (int)EnvMan.instance.m_totalSeconds;
         if (!ArcaneWard.WardFlash.Value) return;
-        var go = Instantiate(ArcaneWard.FlashShield, transform.position, Quaternion.identity);
-        float rad = Radius / 32f;
-        go.transform.Find("Dome").localScale = new Vector3(rad, rad, rad);
+        if (!SpawnWardEffect(ArcaneWard.FlashShield, out GameObject go))
+        {
+            return;
+        }
+
+        Transform dome = go.transform.Find("Dome");
+        if (dome)
+        {
+            float rad = Radius / 32f;
+            dome.localScale = new Vector3(rad, rad, rad);
+        }
+    }
+
+    private bool SpawnWardEffect(GameObject effectPrefab, out GameObject spawned)
+    {
+        spawned = null;
+        if (!effectPrefab)
+        {
+            return false;
+        }
+
+        spawned = Instantiate(effectPrefab, transform.position, Quaternion.identity);
+        return spawned;
+    }
+
+    private void SpawnWardEffect(GameObject effectPrefab)
+    {
+        SpawnWardEffect(effectPrefab, out _);
     }
 
     private int _cachedRadius;

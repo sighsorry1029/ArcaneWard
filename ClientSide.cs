@@ -50,9 +50,29 @@ public static class ClientSide
                 ZRoutedRpc.instance.Register("ArcaneWard Data", new Action<long, bool>(ReceiveData_ArcaneWard));
             if (!ZRoutedRpc.instance.m_functions.ContainsKey("ArcaneWard Notify".GetStableHashCode()))
                 ZRoutedRpc.instance.Register("ArcaneWard Notify", new Action<long, string>(ReceiveData_Notify)); 
-            List<GameObject> hammer = __instance.GetPrefab("Hammer").GetComponent<ItemDrop>().m_itemData.m_shared.m_buildPieces.m_pieces;
+
+            GameObject hammerPrefab = __instance.GetPrefab("Hammer");
+            if (!hammerPrefab)
+            {
+                Debug.LogWarning("[ArcaneWard] Could not find prefab 'Hammer'. Build menu injection skipped.");
+                return;
+            }
+
+            if (hammerPrefab.GetComponent<ItemDrop>() is not { } hammerItemDrop)
+            {
+                Debug.LogWarning("[ArcaneWard] Prefab 'Hammer' has no ItemDrop. Build menu injection skipped.");
+                return;
+            }
+
+            List<GameObject> hammer = hammerItemDrop.m_itemData?.m_shared?.m_buildPieces?.m_pieces;
+            if (hammer == null)
+            {
+                Debug.LogWarning("[ArcaneWard] Hammer build piece list is missing. Build menu injection skipped.");
+                return;
+            }
+
             if (!hammer.Contains(ArcaneWard.ArcaneWard_Piece)) hammer.Add(ArcaneWard.ArcaneWard_Piece);
-            __instance.m_namedPrefabs.Add(ArcaneWard.ArcaneWard_Piece.name.GetStableHashCode(), ArcaneWard.ArcaneWard_Piece);
+            __instance.m_namedPrefabs[ArcaneWard.ArcaneWard_Piece.name.GetStableHashCode()] = ArcaneWard.ArcaneWard_Piece;
         }
 
         private static void ReceiveData_Notify(long sender, string wardName)

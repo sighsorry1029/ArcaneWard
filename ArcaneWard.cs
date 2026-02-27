@@ -20,7 +20,7 @@ namespace kg_ArcaneWard
     public class ArcaneWard : BaseUnityPlugin
     {
         private const string GUID = "kg.ArcaneWard";
-        private const string NAME = "Arcane Ward";
+        private const string NAME = "ArcaneWard";
         private const string VERSION = "0.6.9";
 
         private static readonly ConfigSync configSync = new ConfigSync(GUID)
@@ -163,20 +163,78 @@ namespace kg_ArcaneWard
                 ResetRecipe(); 
                 if (done) return;
                 done = true;
-                PrivateArea guardstone = __instance.GetPrefab("guard_stone").GetComponent<PrivateArea>();
-                FlashShield_Activate = guardstone.m_activateEffect.m_effectPrefabs[0].m_prefab;
-                FlashShield_Deactivate = guardstone.m_deactivateEffect.m_effectPrefabs[0].m_prefab;
-                FlashShield = guardstone.m_flashEffect.m_effectPrefabs[0].m_prefab;
-                FlashShield_Permit = guardstone.m_addPermittedEffect.m_effectPrefabs[0].m_prefab;
-                FlashShield_Fuel = guardstone.m_removedPermittedEffect.m_effectPrefabs[0].m_prefab;
+                GameObject guardStonePrefab = __instance.GetPrefab("guard_stone");
+                if (!guardStonePrefab)
+                {
+                    Debug.LogWarning("[ArcaneWard] Could not find prefab 'guard_stone'. Effect references were not initialized.");
+                    return;
+                }
+
+                if (guardStonePrefab.GetComponent<PrivateArea>() is not { } guardstone)
+                {
+                    Debug.LogWarning("[ArcaneWard] Prefab 'guard_stone' is missing PrivateArea. Effect references were not initialized.");
+                    return;
+                }
+
+                if (TryGetEffectPrefab(guardstone.m_activateEffect, out GameObject activate))
+                    FlashShield_Activate = activate;
+                else Debug.LogWarning("[ArcaneWard] Missing guard_stone activate effect prefab.");
+
+                if (TryGetEffectPrefab(guardstone.m_deactivateEffect, out GameObject deactivate))
+                    FlashShield_Deactivate = deactivate;
+                else Debug.LogWarning("[ArcaneWard] Missing guard_stone deactivate effect prefab.");
+
+                if (TryGetEffectPrefab(guardstone.m_flashEffect, out GameObject flash))
+                    FlashShield = flash;
+                else Debug.LogWarning("[ArcaneWard] Missing guard_stone flash effect prefab.");
+
+                if (TryGetEffectPrefab(guardstone.m_addPermittedEffect, out GameObject permit))
+                    FlashShield_Permit = permit;
+                else Debug.LogWarning("[ArcaneWard] Missing guard_stone add-permitted effect prefab.");
+
+                if (TryGetEffectPrefab(guardstone.m_removedPermittedEffect, out GameObject fuel))
+                    FlashShield_Fuel = fuel;
+                else Debug.LogWarning("[ArcaneWard] Missing guard_stone removed-permitted effect prefab.");
+
                 Piece p = ArcaneWard_Piece.GetComponent<Piece>();
 
-                Piece ward = guardstone.GetComponent<Piece>();
+                if (guardstone.GetComponent<Piece>() is not { } ward)
+                {
+                    Debug.LogWarning("[ArcaneWard] Prefab 'guard_stone' is missing Piece. Place effect was not copied.");
+                    return;
+                }
+
                 p.m_placeEffect = ward.m_placeEffect;
 
                 var shieldGen = __instance.GetPrefab("charred_shieldgenerator");
                 if (!shieldGen) return;
-                ArcaneWard_Piece.transform.Find("Bubble").GetComponent<MeshRenderer>().material.shader = shieldGen.transform.Find("ForceField/ForceField").GetComponent<MeshRenderer>().material.shader;
+                Transform bubble = ArcaneWard_Piece.transform.Find("Bubble");
+                Transform forceField = shieldGen.transform.Find("ForceField/ForceField");
+                if (!bubble || !forceField)
+                {
+                    Debug.LogWarning("[ArcaneWard] Bubble or force field transform not found. Shader copy skipped.");
+                    return;
+                }
+
+                if (bubble.GetComponent<MeshRenderer>() is not { } bubbleRenderer || forceField.GetComponent<MeshRenderer>() is not { } forceFieldRenderer)
+                {
+                    Debug.LogWarning("[ArcaneWard] Bubble/force field mesh renderer not found. Shader copy skipped.");
+                    return;
+                }
+
+                bubbleRenderer.material.shader = forceFieldRenderer.material.shader;
+            }
+
+            private static bool TryGetEffectPrefab(EffectList effectList, out GameObject prefab)
+            {
+                prefab = null;
+                if (effectList?.m_effectPrefabs == null || effectList.m_effectPrefabs.Length == 0)
+                {
+                    return false;
+                }
+
+                prefab = effectList.m_effectPrefabs[0].m_prefab;
+                return prefab;
             }
         }
 
